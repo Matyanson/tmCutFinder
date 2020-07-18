@@ -40,6 +40,7 @@ function createJunctions() {
             return jun.length -1;
         },
         addTrack: (junIndex, track) =>{
+            track.id = Number(track.id);
             update(n=>{
                 if(n[junIndex]){
                     n[junIndex].tracks.push(track);
@@ -67,7 +68,23 @@ function createJunctions() {
                             else if(inverseEnd)
                                 t.start = true;
                             if(newId !== "")
-                                t.id = newId;
+                                t.id = Number(newId);
+                        }
+                        return t;
+                    })
+                })
+                return n;
+            });
+        },
+        modifyTrackEnd: (trackId, firstEnd, inverse = false, newId = "")=>{
+            update(n=>{
+                n.forEach((x, index)=>{
+                    n[index].tracks = x.tracks.map(t=>{
+                        if(t.id == trackId && t.start == firstEnd){
+                            if(inverse)
+                                t.start = !t.start;
+                            if(newId !== "")
+                                t.id = Number(newId);
                         }
                         return t;
                     })
@@ -93,12 +110,16 @@ function createTracks() {
             trackCounter++;
             return temp;
         },
-        addPoint: (id, p)=>{
-            let jun = get(junctions);
-            let addToEnd = !jun.some((j)=>{
-                return j.tracks.some(t=>t.id == id && t.start == false);
+        isEndBlocked: (id, checkFirst = false, checkSecond = false)=>{
+            const jun = get(junctions);
+            return  jun.some((j)=>{
+                let first = checkFirst && j.tracks.some(t=>t.id == id && t.start == true);
+                let second = checkSecond && j.tracks.some(t=>t.id == id && t.start == false);
+                return first || second;
             });
-            if(addToEnd){
+        },
+        addPoint: (id, p)=>{
+            if(!tracks.isEndBlocked(id, false, true)){
                 console.log(`new point: ${p.x}:${p.y}`);
                 update( n=>{
                     if(n[id])
@@ -112,7 +133,7 @@ function createTracks() {
             let addToEnd = !jun.some((j)=>{
                 return j.tracks.some(t=>t.id == id && t.start == false);
             });
-            if(addToEnd){
+            if(!tracks.isEndBlocked(id, false, true)){
                 update(n=>{
                     if(n[id])
                         n[id].points = n[id].points.concat(points);
@@ -132,7 +153,7 @@ function createTracks() {
                     n[trackId].points = second;
                     return n;
                 });
-                junctions.modifyTrack(trackId, false, false, newId);
+                junctions.modifyTrackEnd(trackId, true, false, newId);
 
                 let junIndex = junctions.new(
                     second[0],
@@ -144,13 +165,26 @@ function createTracks() {
                 return junIndex;
             }
         },
+        connectToJunction: (trackId, junIndex)=>{
+            const t = get(tracks);
+            const jun = get(junctions);
+            let track = t[trackId];
+            let start = track.points.length > 0 ? false : true;
+            tracks.addPoint(trackId, jun[junIndex].cords);
+            junctions.addTrack(junIndex, {id: trackId, start});
+                
+        },
         join: (trackId, trackIndex, newTrackId)=>{
             const t = get(tracks);
             let newTrack = t[newTrackId];
             let track = t[trackId];
-            if(!newTrack || !track || !track.points[trackIndex])
+            if(!newTrack || !track || !track.points[trackIndex] || tracks.isEndBlocked(newTrackId, false, true)){
+                console.log("end is blocked");
                 return newTrackId;
-            let start = newTrack.points.length > 1 ? false : true;
+            }
+
+            let start = newTrack.points.length > 0 ? false : true;
+            tracks.addPoint(newTrackId, track.points[trackIndex]);
 
             if(trackIndex > 0){
                 if(trackIndex < track.points.length - 1){
@@ -161,29 +195,47 @@ function createTracks() {
                     return newTrackId;
                 }
                 console.log("F");
+                if(tracks.isEndBlocked(trackId, false, true)){
+                    console.log("lastEndIsBlocked");
+                    return newTrackId;
+                }
+
                 if(start){
                     tracks.delete(newTrackId);
                     return trackId;
                 }
                 else{
                     console.log("connect End");
-                    tracks.delete(trackId);
-                    update(n=>{
-                        n[newTrackId].points = n[newTrackId].points.reverse();
-                        return n;
-                    });
+                    tracks.addPoints(trackId, newTrack.points.reverse());
                     junctions.modifyTrack(newTrackId, true, true);
-                    tracks.addPoints(newTrackId, track.points);
+                    junctions.modifyTrack(newTrackId, false, false, trackId);
+                    tracks.delete(newTrackId);
 
-                    return newTrackId;
+                    return trackId;
                 }
             }
             else if(trackIndex < track.points.length){
                 console.log("S")
+                if(tracks.isEndBlocked(trackId, true, false)){
+                    console.log("firstEndIsBlocked");
+                    return newTrackId;
+                }
                 if(!start){
-                    tracks.addPoints(trackId, newTrack.points);
-                    tracks.delete(newTrackId);
-                    return trackId;
+                    console.log("connect End");
+                    if(trackId == newTrackId){
+                        junctions.new(
+                            track.points[0],
+                            [
+                                {id: trackId, start: true},
+                                {id: trackId, start: false}
+                            ]
+                        )
+                        return newTrackId;
+                    }
+                    tracks.addPoints(newTrackId, track.points);
+                    junctions.modifyTrack(trackId, false, false, newTrackId);
+                    tracks.delete(trackId);
+                    return newTrackId;
                 }else{
                     update(n=>{
                         n[trackId].points = n[trackId].points.reverse();

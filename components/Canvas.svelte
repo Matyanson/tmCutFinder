@@ -7,8 +7,8 @@ on:mousemove={mouseMove}
 {#each Object.entries($tracks) as t}
     <polyline class="track" points={pointsToPath(t[1].points)} stroke-width={6} on:mouseenter={trackEnter(t[0])} on:mouseleave={trackLeave}/>
 {/each}
-{#each $junctions as j}
-    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill="white" />
+{#each $junctions as j, i}
+    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill="white" on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
 {/each}
 {#if hoverTrack > -1}
      <circle class="transparent" cx={fakePoint.x * scaleX} cy={fakePoint.y * scaleY} r={10} fill="red" />
@@ -18,7 +18,8 @@ on:mousemove={mouseMove}
 <svelte:window on:resize|passive={handleResize} />
 {scaleX}:{scaleY}
 mouse: {m.x}:{m.y}
-hover: {hoverTrack}
+hoverT: {hoverTrack}
+hoverJ: {hoverJunction}
 selected: {selectedTrack}
 <button on:click={test}>test</button>
 
@@ -39,6 +40,7 @@ selected: {selectedTrack}
     let lastPoint = { x: 0, y: 0};
     let selectedTrack = tracks.new();
     let hoverTrack = -1;
+    let hoverJunction = -1;
     let fakePoint = { x:0, y:0 };
     const minDist = 20;
 
@@ -54,10 +56,12 @@ selected: {selectedTrack}
     }
     function mouseDown(){
         console.log("mouseDown");
-        if(hoverTrack > -1){
+        if(hoverJunction > -1){
+            tracks.connectToJunction(selectedTrack, hoverJunction);
+        }
+        else if(hoverTrack > -1){
             let nearestIndex = nearestTo($tracks[hoverTrack].points, m);
             console.log(nearestIndex);
-            tracks.addPoint(selectedTrack, $tracks[hoverTrack].points[nearestIndex]);
             selectedTrack = tracks.join(hoverTrack, nearestIndex, selectedTrack);
             hoverTrack = -1;
         }
@@ -94,6 +98,13 @@ selected: {selectedTrack}
     function trackLeave(){
         hoverTrack = -1;
     }
+    function junctionEnter(index){
+        console.log("Entering "+index+" Junction");
+        hoverJunction = index;
+    }
+    function junctionLeave(){
+        hoverJunction = -1;
+    }
     function handleResize(){
         console.log("resize");
         Height = svg.getBoundingClientRect().height;
@@ -123,6 +134,9 @@ svg polyline {
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: 0.2s;
+}
+svg circle:hover{
+    fill: #4f62ce;
 }
 .transparent{
     opacity: 0.7;

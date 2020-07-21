@@ -4,13 +4,13 @@ on:mousedown={mouseDown}
 on:mouseup={mouseUp}
 on:mousemove={mouseMove}
 >
-{#each Object.entries($tracks) as t}
-    <polyline class="track" points={pointsToPath(t[1].points)} stroke-width={6} on:mouseenter={trackEnter(t[0])} on:mouseleave={trackLeave}/>
+{#each Object.entries($paths) as t}
+    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={6} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave}/>
 {/each}
 {#each $junctions as j, i}
     <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill={colors.junctions[j.type]} on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
 {/each}
-{#if hoverTrack > -1}
+{#if hoverPath > -1}
      <circle class="transparent" cx={fakePoint.x * scaleX} cy={fakePoint.y * scaleY} r={10} fill="#9194a1" />
 {/if}
 
@@ -18,14 +18,14 @@ on:mousemove={mouseMove}
 <svelte:window on:resize|passive={handleResize} />
 {scaleX}:{scaleY}
 mouse: {m.x}:{m.y}
-hoverT: {hoverTrack}
+hoverT: {hoverPath}
 hoverJ: {hoverJunction}
-selected: {$selectedTrack}
+selected: {$selectedPath}
 <button on:click={test}>test</button>
 
 <script>
     import { onMount } from 'svelte';
-    import { tracks, junctions, selectedTrack, tool } from '../store';
+    import { paths, junctions, selectedPath, tool } from '../store';
     import { distanceBetween, nearestTo } from '@/utils/functions.js';
     import colors from '../assets/typeColors.js';
     //canvas
@@ -39,9 +39,9 @@ selected: {$selectedTrack}
     let mDown = false;
 
     let lastPoint = { x: 0, y: 0};
-    $selectedTrack = tracks.new();
+    $selectedPath = paths.new();
     let nearestIndex = -1;
-    let hoverTrack = -1;
+    let hoverPath = -1;
     let hoverJunction = -1;
     let fakePoint = { x:0, y:0 };
     const minDist = 20;
@@ -51,9 +51,9 @@ selected: {$selectedTrack}
 	});
 
     function test(){
-        console.log($tracks);
-        $selectedTrack = tracks.new();
-        console.log($tracks);
+        console.log($paths);
+        $selectedPath = paths.new();
+        console.log($paths);
         console.log($junctions);
     }
     function mouseDown(){
@@ -61,16 +61,16 @@ selected: {$selectedTrack}
         switch($tool){
             case 0:
                 if(hoverJunction > -1){
-                    tracks.connectToJunction($selectedTrack, hoverJunction);
+                    paths.connectToJunction($selectedPath, hoverJunction);
                 }
-                else if(hoverTrack > -1){
-                    $selectedTrack = tracks.join(hoverTrack, nearestIndex, $selectedTrack);
-                    hoverTrack = -1;
+                else if(hoverPath > -1){
+                    $selectedPath = paths.join(hoverPath, nearestIndex, $selectedPath);
+                    hoverPath = -1;
                 }
                 break;
             case 1:
-                if(hoverTrack > -1 && nearestIndex > -1)
-                    junctions.putOnTrack(hoverTrack, nearestIndex);
+                if(hoverPath > -1 && nearestIndex > -1)
+                    junctions.putOnPath(hoverPath, nearestIndex);
                 break;
         }
         mDown = true;
@@ -88,7 +88,7 @@ selected: {$selectedTrack}
         switch($tool){
             case 0:
                  if(mDown && distanceBetween(newM, lastPoint) > minDist){
-                    tracks.addPoint($selectedTrack, newM);
+                    paths.addPoint($selectedPath, newM);
                     lastPoint = newM;
                 }
                 savefakeJunPossition(4);
@@ -101,8 +101,8 @@ selected: {$selectedTrack}
         m = newM;
 
         function savefakeJunPossition(endTrim = 0){
-            if(hoverTrack > -1){
-                const HPoints = $tracks[hoverTrack].points;
+            if(hoverPath > -1){
+                const HPoints = $paths[hoverPath].points;
                 const temp = nearestTo(HPoints, m);
                 if(temp > -1 && temp < HPoints.length - 1 - endTrim){
                     nearestIndex = temp;
@@ -112,16 +112,16 @@ selected: {$selectedTrack}
                         y: nearestPoint.y
                     }
                 }else{
-                    hoverTrack = -1;
+                    hoverPath = -1;
                 }
             }
         }
     }
-    function trackEnter(id){
-        hoverTrack = id;
+    function pathEnter(id){
+        hoverPath = id;
     }
-    function trackLeave(){
-        hoverTrack = -1;
+    function pathLeave(){
+        hoverPath = -1;
     }
     function junctionEnter(index){
         console.log("Entering "+index+" Junction");
@@ -134,7 +134,7 @@ selected: {$selectedTrack}
         console.log("resize");
         Height = svg.getBoundingClientRect().height;
         Width = svg.getBoundingClientRect().width;
-        $tracks = $tracks;
+        $paths = $paths;
     }
 
     function pointsToPath(points){

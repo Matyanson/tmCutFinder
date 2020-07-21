@@ -1,13 +1,13 @@
 import { writable, get } from 'svelte/store';
 import { SvelteComponentDev } from 'svelte/internal';
 
-let trackCounter = 0;
+let pathCounter = 0;
 
 export const imgSrc = writable("");
 export const tool = writable(0);
-export const trackType = writable("normal");
+export const pathType = writable("normal");
 export const junType = writable("normal");
-export const selectedTrack = writable(-1);
+export const selectedPath = writable(-1);
 export const junctions = createJunctions();
 
 function createJunctions() {
@@ -16,25 +16,25 @@ function createJunctions() {
 	return {
         subscribe,
         set,
-        new: (cords, tracks = [],type = get(junType))=>{
+        new: (cords, paths = [],type = get(junType))=>{
             let jun = get(junctions);
             let previous = jun.find(j=>{
                 j.cords == cords;
             });
             update( n=>{
-                let NTracks = tracks.map(t=>{
+                let NPaths = paths.map(t=>{
                     t.id = Number(t.id);
                     return t;
                 })
                 if(previous){
-                    n[previous].tracks = NTracks;
+                    n[previous].paths = NPaths;
                     console.log("UpdatingJunction");
                 }else{
                     console.log("addingNewJunction");
                     n.push({
                         cords,
                         type,
-                        tracks: NTracks
+                        paths: NPaths
                     })
                 }
                 return n;
@@ -43,33 +43,33 @@ function createJunctions() {
                 return previous;
             return jun.length -1;
         },
-        putOnTrack: (trackId, trackIndex) =>{
-            tracks.split(trackId, trackIndex, get(junType));
+        putOnPath: (pathId, pathIndex) =>{
+            paths.split(pathId, pathIndex, get(junType));
         },
-        addTrack: (junIndex, track) =>{
-            track.id = Number(track.id);
+        addPath: (junIndex, path) =>{
+            path.id = Number(path.id);
             update(n=>{
                 if(n[junIndex]){
-                    n[junIndex].tracks.push(track);
+                    n[junIndex].paths.push(path);
                 }
                 return n;
             })
         },
-        deleteTrack: (trackId)=>{
+        deletePath: (pathId)=>{
             update(n=>{
                 n.forEach((x, index)=>{
-                    n[index].tracks = x.tracks.filter(t=>{
-                        return t.id !== trackId;
+                    n[index].paths = x.paths.filter(t=>{
+                        return t.id !== pathId;
                     })
                 })
                 return n;
             });
         },
-        modifyTrack: (trackId, inverseStart = false, inverseEnd = false, newId = "")=>{
+        modifyPath: (pathId, inverseStart = false, inverseEnd = false, newId = "")=>{
             update(n=>{
                 n.forEach((x, index)=>{
-                    n[index].tracks = x.tracks.map(t=>{
-                        if(t.id == trackId){
+                    n[index].paths = x.paths.map(t=>{
+                        if(t.id == pathId){
                             if(t.start && inverseStart)
                                 t.start = false;
                             else if(inverseEnd)
@@ -83,11 +83,11 @@ function createJunctions() {
                 return n;
             });
         },
-        modifyTrackEnd: (trackId, firstEnd, inverse = false, newId = "")=>{
+        modifyPathEnd: (pathId, firstEnd, inverse = false, newId = "")=>{
             update(n=>{
                 n.forEach((x, index)=>{
-                    n[index].tracks = x.tracks.map(t=>{
-                        if(t.id == trackId && t.start == firstEnd){
+                    n[index].paths = x.paths.map(t=>{
+                        if(t.id == pathId && t.start == firstEnd){
                             if(inverse)
                                 t.start = !t.start;
                             if(newId !== "")
@@ -102,31 +102,31 @@ function createJunctions() {
     }
 }
 
-function createTracks() {
+function createPaths() {
     const { subscribe, set, update }  = writable({});
 
 	return {
         subscribe,
         set,
-		new: (points = [], type = get(trackType)) => {
+		new: (points = [], type = get(pathType)) => {
             update( n=>{
-                n[trackCounter] = {type, points};
+                n[pathCounter] = {type, points};
                 return n;
             });
-            const temp = trackCounter;
-            trackCounter++;
+            const temp = pathCounter;
+            pathCounter++;
             return temp;
         },
         isEndBlocked: (id, checkFirst = false, checkSecond = false)=>{
             const jun = get(junctions);
             return  jun.some((j)=>{
-                let first = checkFirst && j.tracks.some(t=>t.id == id && t.start == true);
-                let second = checkSecond && j.tracks.some(t=>t.id == id && t.start == false);
+                let first = checkFirst && j.paths.some(t=>t.id == id && t.start == true);
+                let second = checkSecond && j.paths.some(t=>t.id == id && t.start == false);
                 return first || second;
             });
         },
         addPoint: (id, p)=>{
-            if(!tracks.isEndBlocked(id, false, true)){
+            if(!paths.isEndBlocked(id, false, true)){
                 console.log(`new point: ${p.x}:${p.y}`);
                 update( n=>{
                     if(n[id])
@@ -138,9 +138,9 @@ function createTracks() {
         addPoints: (id, points)=>{
             let jun = get(junctions);
             let addToEnd = !jun.some((j)=>{
-                return j.tracks.some(t=>t.id == id && t.start == false);
+                return j.paths.some(t=>t.id == id && t.start == false);
             });
-            if(!tracks.isEndBlocked(id, false, true)){
+            if(!paths.isEndBlocked(id, false, true)){
                 update(n=>{
                     if(n[id])
                         n[id].points = n[id].points.concat(points);
@@ -148,119 +148,119 @@ function createTracks() {
                 })
             }
         },
-        split: (trackId, trackIndex, junType = "normal")=>{
-            const t = get(tracks);
-            if(t[trackId] && t[trackId].points[trackIndex]){
+        split: (pathId, pathIndex, junType = "normal")=>{
+            const t = get(paths);
+            if(t[pathId] && t[pathId].points[pathIndex]){
 
-                let first = t[trackId].points.slice(0, trackIndex+1);
-                let second = t[trackId].points.slice(trackIndex);
+                let first = t[pathId].points.slice(0, pathIndex+1);
+                let second = t[pathId].points.slice(pathIndex);
 
-                let newId = tracks.new(first, t[trackId].type);
+                let newId = paths.new(first, t[pathId].type);
                 update(n=>{
-                    n[trackId].points = second;
+                    n[pathId].points = second;
                     return n;
                 });
-                junctions.modifyTrackEnd(trackId, true, false, newId);
+                junctions.modifyPathEnd(pathId, true, false, newId);
 
                 let junIndex = junctions.new(
                     second[0],
                     [
                         {id: newId, start: false},
-                        {id: trackId, start: true}
+                        {id: pathId, start: true}
                     ],
                     junType
                 );
                 return junIndex;
             }
         },
-        connectToJunction: (trackId, junIndex)=>{
-            const t = get(tracks);
+        connectToJunction: (pathId, junIndex)=>{
+            const t = get(paths);
             const jun = get(junctions);
-            let track = t[trackId];
-            let start = track.points.length > 0 ? false : true;
-            tracks.addPoint(trackId, jun[junIndex].cords);
-            junctions.addTrack(junIndex, {id: trackId, start});
+            let path = t[pathId];
+            let start = path.points.length > 0 ? false : true;
+            paths.addPoint(pathId, jun[junIndex].cords);
+            junctions.addPath(junIndex, {id: pathId, start});
                 
         },
-        join: (trackId, trackIndex, newTrackId)=>{
-            const t = get(tracks);
-            let newTrack = t[newTrackId];
-            let track = t[trackId];
-            if(!newTrack || !track || !track.points[trackIndex] || tracks.isEndBlocked(newTrackId, false, true)){
+        join: (pathId, pathIndex, newPathId)=>{
+            const t = get(paths);
+            let newPath = t[newPathId];
+            let path = t[pathId];
+            if(!newPath || !path || !path.points[pathIndex] || paths.isEndBlocked(newPathId, false, true)){
                 console.log("end is blocked");
-                return newTrackId;
+                return newPathId;
             }
 
-            let start = newTrack.points.length > 0 ? false : true;
-            tracks.addPoint(newTrackId, track.points[trackIndex]);
+            let start = newPath.points.length > 0 ? false : true;
+            paths.addPoint(newPathId, path.points[pathIndex]);
 
-            if(trackIndex > 0){
-                if(trackIndex < track.points.length - 1){
+            if(pathIndex > 0){
+                if(pathIndex < path.points.length - 1){
                     console.log("FS");
-                    let junIndex = tracks.split(trackId, trackIndex, "normal");
-                    console.log(`adding track ${newTrackId} to jun ${junIndex}`);
-                    junctions.addTrack(junIndex, {id: newTrackId, start });
-                    return newTrackId;
+                    let junIndex = paths.split(pathId, pathIndex, "normal");
+                    console.log(`adding path ${newPathId} to jun ${junIndex}`);
+                    junctions.addPath(junIndex, {id: newPathId, start });
+                    return newPathId;
                 }
                 console.log("F");
-                if(tracks.isEndBlocked(trackId, false, true)){
+                if(paths.isEndBlocked(pathId, false, true)){
                     console.log("lastEndIsBlocked");
-                    return newTrackId;
+                    return newPathId;
                 }
 
                 if(start){
-                    tracks.delete(newTrackId);
-                    return trackId;
+                    paths.delete(newPathId);
+                    return pathId;
                 }
                 else{
                     console.log("connect End");
-                    tracks.addPoints(trackId, newTrack.points.reverse());
-                    junctions.modifyTrack(newTrackId, true, true);
-                    junctions.modifyTrack(newTrackId, false, false, trackId);
-                    tracks.delete(newTrackId);
+                    paths.addPoints(pathId, newPath.points.reverse());
+                    junctions.modifyPath(newPathId, true, true);
+                    junctions.modifyPath(newPathId, false, false, pathId);
+                    paths.delete(newPathId);
 
-                    return trackId;
+                    return pathId;
                 }
             }
-            else if(trackIndex < track.points.length){
+            else if(pathIndex < path.points.length){
                 console.log("S")
-                if(tracks.isEndBlocked(trackId, true, false)){
+                if(paths.isEndBlocked(pathId, true, false)){
                     console.log("firstEndIsBlocked");
-                    return newTrackId;
+                    return newPathId;
                 }
                 if(!start){
                     console.log("connect End");
-                    if(trackId == newTrackId){
+                    if(pathId == newPathId){
                         junctions.new(
-                            track.points[0],
+                            path.points[0],
                             [
-                                {id: trackId, start: true},
-                                {id: trackId, start: false}
+                                {id: pathId, start: true},
+                                {id: pathId, start: false}
                             ]
                         )
-                        return newTrackId;
+                        return newPathId;
                     }
-                    tracks.addPoints(newTrackId, track.points);
-                    junctions.modifyTrack(trackId, false, false, newTrackId);
-                    tracks.delete(trackId);
-                    return newTrackId;
+                    paths.addPoints(newPathId, path.points);
+                    junctions.modifyPath(pathId, false, false, newPathId);
+                    paths.delete(pathId);
+                    return newPathId;
                 }else{
                     update(n=>{
-                        n[trackId].points = n[trackId].points.reverse();
+                        n[pathId].points = n[pathId].points.reverse();
                         return n;
                     })
-                    tracks.delete(newTrackId);
-                    junctions.modifyTrack(trackId, true, true);
-                    return trackId;
+                    paths.delete(newPathId);
+                    junctions.modifyPath(pathId, true, true);
+                    return pathId;
                 }
             }
             
         },
-        delete: (trackId)=>{
+        delete: (pathId)=>{
             update(n=>{
-                if(n[trackId]){
-                    delete n[trackId];
-                    junctions.deleteTrack(trackId);
+                if(n[pathId]){
+                    delete n[pathId];
+                    junctions.deletePath(pathId);
                 }
                 return n;
             })
@@ -268,4 +268,4 @@ function createTracks() {
 	};
 }
 
-export const tracks = createTracks();
+export const paths = createPaths();

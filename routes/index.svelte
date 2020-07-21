@@ -12,7 +12,6 @@
 <script>
 	import ImgUploader from '../components/getImage.svelte';
 	import Editor from '../components/Editor.svelte';
-	import { selectedTrack } from '../store.js';
 </script>
 
 <style>

@@ -1,5 +1,5 @@
 export default {
-    "tracks":{
+    "paths":{
         "normal": "#1b36ca",
         "cut": "#222"
     },

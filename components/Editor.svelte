@@ -1,6 +1,6 @@
 <div class="container">
     <div class="toolbar">
-    Hello World!!
+        <Toolbar />
     </div>
     <div class="canvas">
         <img src={$imgSrc} alt="TM Map screenshot" >
@@ -11,6 +11,7 @@
 <script>
     import {imgSrc} from '../store.js';
     import Canvas from './Canvas.svelte';
+    import Toolbar from './Toolbar.svelte';
 </script>
 
 <style>

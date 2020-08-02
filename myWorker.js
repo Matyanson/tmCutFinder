@@ -87,6 +87,7 @@ async function calculateRoutes(data){
         }
         if(pathRepetition < 3)
           pointsFromHere.push({id: curPoint.id, start: !curPoint.start});
+          
 
         if(!cps.includes(junIndex))
           cps.push(junIndex);
@@ -112,7 +113,8 @@ async function calculateRoutes(data){
           //if not wrong way
           if(nextPath && !(nextPath.type == "cut" && nextPath.start == false)){
             let newPoints = [...points, p];
-            continueRoute({points: newPoints, dist, cps});
+            let newCps = [...cps];
+            continueRoute({points: newPoints, dist, cps: newCps});
           }
         }
       }

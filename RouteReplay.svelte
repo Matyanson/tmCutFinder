@@ -4,7 +4,7 @@
         {#if manual}
             <input type="range" min={0} max={fragments.length-1} bind:value={animIteration} > {animIteration}
             {:else}
-            <input type="range" min={1} max={50} bind:value={animSpeed} on:input={()=>resetAnimation()} > {animSpeed/10}x, delay: {animDelay}, frames: {frameSkip}
+            <input type="range" min={1} max={50} bind:value={animSpeed} on:input={()=>resetAnimation()} > {animSpeed/10}x, <button on:click={()=>{animIteration = 0}} >Reset</button>
         {/if}
     </div>
     <div class="display">
@@ -25,7 +25,7 @@
     export let selectedRoute = 1;
     let manual = true;
     let animIteration = 0;
-    let animSpeed = 1; //miltiplyer
+    let animSpeed = 20; //miltiplyer /10
     const animDelaymin = 20;
     let animDelay = 100; //ms
     let frameSkip = 1;
@@ -84,7 +84,7 @@
         if(route){
             let points = route.points.slice(1, route.points.length);
             for(let p of points){
-                let pathCords = p.start? $paths[p.id].points.reverse() : $paths[p.id].points;
+                let pathCords = p.start? $paths[p.id].points.slice().reverse() : $paths[p.id].points.slice();
                 let fragments = fragmentPath(pathCords, 20);
                 result = result.concat(fragments);
             }

@@ -5,10 +5,14 @@ let pathCounter = 0;
 
 export const imgSrc = writable("");
 export const tool = writable(0);
+
 export const pathType = writable("normal");
 export const junType = writable("normal");
 export const selectedPath = writable(-1);
+
 export const junctions = createJunctions();
+export const paths = createPaths();
+export const routes = writable([]);
 
 function createJunctions() {
 	const { subscribe, set, update } = writable([]);
@@ -267,5 +271,3 @@ function createPaths() {
         }
 	};
 }
-
-export const paths = createPaths();

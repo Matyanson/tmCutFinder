@@ -10,10 +10,14 @@ on:mousemove={mouseMove}
     <path d="M 0 0 L 10 3 L 0 6 z" fill="#ddd"/>
 </marker>
 {#each Object.entries($paths) as t}
-    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={6} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} marker-end="url(#arrow)"/>
+    {#if t[1].type == "cut"}
+    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={5} stroke={'#000'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} marker-end='url(#arrow)'/>
+    {:else}
+    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={10} stroke={'#1b36ca'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} />
+    {/if}
 {/each}
 {#each $junctions as j, i}
-    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill={colors.junctions[j.type]} on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
+    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill={shapeProps.junctions[j.type].color} on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
 {/each}
 {#if hoverPath > -1}
      <circle class="transparent" cx={fakePoint.x * scaleX} cy={fakePoint.y * scaleY} r={10} fill="#9194a1" />
@@ -27,7 +31,7 @@ hover: {hoverPath}
     import { onMount } from 'svelte';
     import { paths, junctions, selectedPath, tool } from '../store';
     import { distanceBetween, nearestTo } from '@/utils/functions.js';
-    import colors from '../assets/typeColors.js';
+    import shapeProps from '../assets/shapeTypeProperties.js';
     //canvas
     let svg;
     let Width;
@@ -94,12 +98,13 @@ hover: {hoverPath}
         
         m = newM;
 
-        function savefakeJunPossition(endTrim = 1){
+        function savefakeJunPossition(endTrim = 0){
             if(hoverPath > -1){
                 const HPoints = $paths[hoverPath].points;
                 const temp = nearestTo(HPoints, m);
                 endTrim = hoverPath == $selectedPath ? endTrim : 0;
-                if(temp > -1 && temp < HPoints.length - endTrim && !paths.isEndBlocked($selectedPath, false, true)){
+                if(temp > -1 && temp < HPoints.length - endTrim &&
+                ( $tool != 0 || !paths.isEndBlocked($selectedPath, false, true) )){
                     nearestIndex = temp;
                     const nearestPoint = HPoints[nearestIndex];
                     fakePoint = {
@@ -150,7 +155,6 @@ svg{
 }
 svg polyline {
     fill: none;
-    stroke: #1b36ca;
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: 0.2s;

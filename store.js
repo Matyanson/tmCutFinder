@@ -119,6 +119,7 @@ function createPaths() {
             });
             const temp = pathCounter;
             pathCounter++;
+            console.log(get(paths));
             return temp;
         },
         isEndBlocked: (id, checkFirst = false, checkSecond = false)=>{
@@ -199,7 +200,7 @@ function createPaths() {
             paths.addPoint(newPathId, path.points[pathIndex]);
 
             if(pathIndex > 0){
-                if(pathIndex < path.points.length - 1){
+                if(pathIndex < path.points.length - 1 || newPath.type !== path.type){
                     console.log("FS");
                     let junIndex = paths.split(pathId, pathIndex, "normal");
                     console.log(`adding path ${newPathId} to jun ${junIndex}`);
@@ -226,10 +227,17 @@ function createPaths() {
                     return pathId;
                 }
             }
-            else if(pathIndex < path.points.length){
+            else{
                 console.log("S")
                 if(paths.isEndBlocked(pathId, true, false)){
                     console.log("firstEndIsBlocked");
+                    return newPathId;
+                }
+                if(newPath.type !== path.type){
+                    console.log("FS");
+                    let junIndex = paths.split(pathId, pathIndex, "normal");
+                    console.log(`adding path ${newPathId} to jun ${junIndex}`);
+                    junctions.addPath(junIndex, {id: newPathId, start });
                     return newPathId;
                 }
                 if(!start){

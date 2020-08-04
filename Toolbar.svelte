@@ -11,7 +11,6 @@
     <button on:click={()=>junType.set("start")}>Start</button>
     <button on:click={()=>junType.set("finish")}>Finish</button>
 {/if}
-{$pathType}
 
 <script>
     import { tool, pathType, junType, paths, selectedPath } from '../store.js';

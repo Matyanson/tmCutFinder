@@ -60,6 +60,7 @@ async function calculateRoutes(data){
     continueRoute(startingRoute);
   }
   postMessage({type: "finished", data: finalRoutes});
+  //close();
 
   async function continueRoute(route){
     let { points, dist = 0, cps = [] } = {...route};
@@ -111,7 +112,7 @@ async function calculateRoutes(data){
         for(p of pointsFromHere){
           let nextPath = paths[p.id];
           //if not wrong way
-          if(nextPath && !(nextPath.type == "cut" && nextPath.start == false)){
+          if(nextPath && !(nextPath.type == "cut" && p.start == true)){
             let newPoints = [...points, p];
             let newCps = [...cps];
             continueRoute({points: newPoints, dist, cps: newCps});

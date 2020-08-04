@@ -10,9 +10,12 @@
     <div class="display">
         <img src={$imgSrc} alt="TM Map screenshot" >
         <svg bind:this={svg}>
-        {#each fragments as points,i}
-            <polyline class={`${i == animIteration ? "highlighted" : "normal"}`} points={pointsToPath(points)} stroke-width={7} />
-        {/each}
+        {#if fragments[animIteration]}
+            {#each fragments as points,i}
+                <polyline class={`${i == animIteration ? "highlighted" : "normal"}`} points={pointsToPath(points)} stroke-width={7} />
+            {/each}
+            <circle cx={fragments[animIteration][0].x * scaleX} cy={fragments[animIteration][0].y * scaleY} r={7} fill="aqua" />
+        {/if}
         </svg>
     </div>
 </div>

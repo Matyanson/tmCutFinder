@@ -11,9 +11,9 @@ on:mousemove={mouseMove}
 </marker>
 {#each Object.entries($paths) as t}
     {#if t[1].type == "cut"}
-    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={5} stroke={'#000'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} marker-end='url(#arrow)'/>
+    <polyline class={`path ${t[0] == $selectedPath? 'selected':''}`} points={pointsToPath(t[1].points)} stroke-width={5} stroke={'#000'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} marker-end='url(#arrow)'/>
     {:else}
-    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={10} stroke={'#1b36ca'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} />
+    <polyline class={`path ${t[0] == $selectedPath? 'selected':''}`} points={pointsToPath(t[1].points)} stroke-width={10} stroke={'#1b36ca'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} />
     {/if}
 {/each}
 {#each $junctions as j, i}
@@ -88,8 +88,8 @@ hover: {hoverPath}
                  if(mDown && distanceBetween(newM, lastPoint) > minDist){
                     paths.addPoint($selectedPath, newM);
                     lastPoint = newM;
-                }
-                savefakeJunPossition(4);
+                }else
+                    savefakeJunPossition(4);
                 break;
             case 1:
                 savefakeJunPossition();
@@ -158,6 +158,12 @@ svg polyline {
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: 0.2s;
+}
+svg polyline:hover{
+    stroke: #14258a;
+}
+svg polyline.selected{
+    stroke: #6c82ff;
 }
 svg circle:hover{
     fill: #4f62ce;

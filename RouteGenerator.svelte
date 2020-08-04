@@ -35,6 +35,7 @@
 						case "finished":
 							$routes = d.data;
 							generating = false;
+							w = undefined;
 							break;
 						case "updated":
 							$routes = d.data;

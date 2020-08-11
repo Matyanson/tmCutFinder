@@ -6,23 +6,23 @@ export default {
             "marker": "",
         },
         "cut": {
-            "color": "#222",
+            "color": "#222222",
             "width": "4",
             "marker": "url(#arrow)",
         }
     },
     "junctions": {
         "normal": {
-            "color": "#eee",
+            "color": "#eeeeee",
         },
         "checkpoint": {
-            "color": "yellow",
+            "color": "#ebe700",
         },
         "start": {
-            "color": "lightgreen",
+            "color": "#90ee90",
         } ,
         "finish": {
-            "color": "red"
+            "color": "#ce1e1e"
         }
     }
 }

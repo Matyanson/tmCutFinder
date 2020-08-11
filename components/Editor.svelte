@@ -1,3 +1,4 @@
+
 <div class="container">
     <div class="toolbar">
         <Toolbar />
@@ -5,6 +6,9 @@
     <div class="canvas">
         <img src={$imgSrc} alt="TM Map screenshot" >
         <Canvas/>
+        <div class="sidebar">
+            <ToolSettings />
+        </div>
     </div>
 </div>
 
@@ -12,13 +16,21 @@
     import {imgSrc} from '../store.js';
     import Canvas from './Canvas.svelte';
     import Toolbar from './Toolbar.svelte';
+    import ToolSettings from './ToolSettings.svelte';
 </script>
 
 <style>
+.sidebar{
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
 .container{
-    background: #555;
+    position: relative;
+    background: #223;
     width: 100%;
-    height: 100vh;
+    height: 100%;
+    max-height: 100vh;
     display: flex;
     flex-flow: column;
 }

@@ -3,12 +3,25 @@ bind:this={svg}
 on:mousedown={mouseDown}
 on:mouseup={mouseUp}
 on:mousemove={mouseMove}
+class={$tool == 0? "crosshair": ""}
 >
+<marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3"
+    markerWidth="6" markerHeight="6"
+    orient="auto-start-reverse">
+    <path d="M 0 0 L 10 3 L 0 6 z" fill="#ddd"/>
+</marker>
 {#each Object.entries($paths) as t}
-    <polyline class="path" points={pointsToPath(t[1].points)} stroke-width={6} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave}/>
+    {#if t[1].type == "cut"}
+    <polyline class={`path ${t[0] == $selectedPath? 'selected':''}`} points={pointsToPath(t[1].points)} stroke-width={5} stroke={'#000'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} marker-end='url(#arrow)'/>
+    {:else}
+    <polyline class={`path ${t[0] == $selectedPath? 'selected':''}`} points={pointsToPath(t[1].points)} stroke-width={10} stroke={'#1b36ca'} on:mouseenter={pathEnter(t[0])} on:mouseleave={pathLeave} />
+    {/if}
 {/each}
 {#each $junctions as j, i}
-    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill={colors.junctions[j.type]} on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
+    <circle cx={j.cords.x * scaleX} cy={j.cords.y * scaleY} r={10} fill={shapeProps.junctions[j.type].color} on:mouseenter={()=>junctionEnter(i)} on:mouseleave={()=>junctionLeave()}/>
+{/each}
+{#each cps as cp}
+    <text class="transparent" x={cp.cords.x * scaleX} y={(cp.cords.y * scaleY)+1} text-anchor="middle" alignment-baseline="middle" stroke="#777">{cp.num}</text>
 {/each}
 {#if hoverPath > -1}
      <circle class="transparent" cx={fakePoint.x * scaleX} cy={fakePoint.y * scaleY} r={10} fill="#9194a1" />
@@ -16,18 +29,12 @@ on:mousemove={mouseMove}
 
 </svg>
 <svelte:window on:resize|passive={handleResize} />
-{scaleX}:{scaleY}
-mouse: {m.x}:{m.y}
-hoverT: {hoverPath}
-hoverJ: {hoverJunction}
-selected: {$selectedPath}
-<button on:click={test}>test</button>
 
 <script>
     import { onMount } from 'svelte';
-    import { paths, junctions, selectedPath, tool } from '../store';
+    import { paths, junctions, selectedPath, selectedJun, tool } from '../store';
     import { distanceBetween, nearestTo } from '@/utils/functions.js';
-    import colors from '../assets/typeColors.js';
+    import shapeProps from '../assets/shapeTypeProperties.js';
     //canvas
     let svg;
     let Width;
@@ -38,6 +45,9 @@ selected: {$selectedPath}
     let m = { x: 0, y: 0};
     let mDown = false;
 
+    $: cps = $junctions.filter(j=>{
+        return j.type == "checkpoint";
+    })
     let lastPoint = { x: 0, y: 0};
     $selectedPath = paths.new();
     let nearestIndex = -1;
@@ -50,15 +60,23 @@ selected: {$selectedPath}
         handleResize();
 	});
 
-    function test(){
-        console.log($paths);
-        $selectedPath = paths.new();
-        console.log($paths);
-        console.log($junctions);
-    }
     function mouseDown(){
         console.log("mouseDown");
         switch($tool){
+            case -1:
+                if(hoverJunction > -1){
+                    $selectedJun = hoverJunction;
+                    $selectedPath = -1;
+                }
+                else if(hoverPath > -1){
+                    $selectedPath = hoverPath;
+                    $selectedJun = -1;
+                }
+                else{
+                    $selectedJun = -1;
+                    $selectedPath = -1;
+                }
+                break;
             case 0:
                 if(hoverJunction > -1){
                     paths.connectToJunction($selectedPath, hoverJunction);
@@ -90,11 +108,11 @@ selected: {$selectedPath}
                  if(mDown && distanceBetween(newM, lastPoint) > minDist){
                     paths.addPoint($selectedPath, newM);
                     lastPoint = newM;
-                }
-                savefakeJunPossition(4);
+                }else
+                    savefakeJunPossition(4);
                 break;
             case 1:
-                savefakeJunPossition(0);
+                savefakeJunPossition();
                 break;
         }
         
@@ -104,7 +122,9 @@ selected: {$selectedPath}
             if(hoverPath > -1){
                 const HPoints = $paths[hoverPath].points;
                 const temp = nearestTo(HPoints, m);
-                if(temp > -1 && temp < HPoints.length - 1 - endTrim){
+                endTrim = hoverPath == $selectedPath ? endTrim : 0;
+                if(temp > -1 && temp < HPoints.length - endTrim &&
+                ( $tool != 0 || !paths.isEndBlocked($selectedPath, false, true) )){
                     nearestIndex = temp;
                     const nearestPoint = HPoints[nearestIndex];
                     fakePoint = {
@@ -131,9 +151,8 @@ selected: {$selectedPath}
         hoverJunction = -1;
     }
     function handleResize(){
-        console.log("resize");
-        Height = svg.getBoundingClientRect().height;
         Width = svg.getBoundingClientRect().width;
+        Height = svg.getBoundingClientRect().height;
         $paths = $paths;
     }
 
@@ -150,16 +169,24 @@ selected: {$selectedPath}
 </script>
 
 <style>
+.crosshair{
+    cursor: crosshair;
+}
 svg{
     height: 100%;
     width: 100%;
 }
 svg polyline {
     fill: none;
-    stroke: #1b36ca;
     stroke-linecap: round;
     stroke-linejoin: round;
     transition: 0.2s;
+}
+svg polyline:hover{
+    stroke: #14258a;
+}
+svg polyline.selected{
+    stroke: #6c82ff;
 }
 svg circle:hover{
     fill: #4f62ce;
@@ -167,5 +194,6 @@ svg circle:hover{
 .transparent{
     opacity: 0.7;
     pointer-events: none;
+    user-select: none;
 }
 </style>

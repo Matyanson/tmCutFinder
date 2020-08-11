@@ -90,8 +90,8 @@ async function calculateRoutes(data){
           pointsFromHere.push({id: curPoint.id, start: !curPoint.start});
           
 
-        if(!cps.includes(junIndex))
-          cps.push(junIndex);
+        if(!cps.includes(curJun.num))
+          cps.push(curJun.num);
       }
       dist+= curPath.dist;
       //calculate percentage

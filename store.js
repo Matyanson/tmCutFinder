@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import { SvelteComponentDev } from 'svelte/internal';
 
 let pathCounter = 0;
+let cpCounter = 1;
 
 export const imgSrc = writable("");
 export const tool = writable(0);
@@ -9,6 +10,7 @@ export const tool = writable(0);
 export const pathType = writable("normal");
 export const junType = writable("normal");
 export const selectedPath = writable(-1);
+export const selectedJun = writable(-1);
 
 export const junctions = createJunctions();
 export const paths = createPaths();
@@ -22,30 +24,66 @@ function createJunctions() {
         set,
         new: (cords, paths = [],type = get(junType))=>{
             let jun = get(junctions);
-            let previous = jun.find(j=>{
+            let previous = jun.findIndex(j=>{
                 j.cords == cords;
             });
             update( n=>{
-                let NPaths = paths.map(t=>{
-                    t.id = Number(t.id);
-                    return t;
+                let NPaths = paths.map(p=>{
+                    p.id = Number(p.id);
+                    return p;
                 })
-                if(previous){
-                    n[previous].paths = NPaths;
-                    console.log("UpdatingJunction");
-                }else{
-                    console.log("addingNewJunction");
-                    n.push({
-                        cords,
-                        type,
-                        paths: NPaths
+                console.log("addingNewJunction");
+                let newJun = {
+                    cords,
+                    type,
+                    paths: NPaths
+                }
+                if(type == "checkpoint"){
+                    newJun.num = cpCounter;
+                    cpCounter++;
+                }
+                n.push(newJun);
+                return n;
+            });
+            if(previous > -1)
+                return previous;
+            console.log("returning last jun");
+            return jun.length -1;
+        },
+        delete: (index)=>{
+            update(n=>{
+                if(n[index]){
+                    if(n[index].type == "checkpoint")
+                        junctions.uptadeCPCoutFrom(n[index].num);
+                    n[index].paths.forEach(p=>{
+                        paths.delete(p.id);
                     })
+                    n.splice(index, 1);
+                }
+                return n;
+            })
+        },
+        uptadeCPCoutFrom: (number)=>{
+            update(n=>{
+                n.map(x=>{
+                    if(x.type == "checkpoint" && x.num > number)
+                        x.num--;
+                    return x;
+                })
+                return n;
+            })
+        },
+        changeType: (index, newType)=>{
+            update(n=>{
+                if(n[index]){
+                    if(newType == "checkpoint" && !n[index].num){
+                        n[index].num = cpCounter;
+                        cpCounter++;
+                    }
+                    n[index].type = newType;
                 }
                 return n;
             });
-            if(previous)
-                return previous;
-            return jun.length -1;
         },
         putOnPath: (pathId, pathIndex) =>{
             paths.split(pathId, pathIndex, get(junType));
@@ -63,9 +101,12 @@ function createJunctions() {
             update(n=>{
                 n.forEach((x, index)=>{
                     n[index].paths = x.paths.filter(t=>{
-                        return t.id !== pathId;
+                        return t.id != pathId;
                     })
+                    if(n[index].paths.length < 1)
+                        junctions.delete(index);
                 })
+                    
                 return n;
             });
         },
@@ -87,7 +128,7 @@ function createJunctions() {
                 return n;
             });
         },
-        modifyPathEnd: (pathId, firstEnd, inverse = false, newId = "")=>{
+        modifyPathEnd: (pathId, firstEnd = true, inverse = false, newId = "")=>{
             update(n=>{
                 n.forEach((x, index)=>{
                     n[index].paths = x.paths.map(t=>{
@@ -120,6 +161,7 @@ function createPaths() {
             const temp = pathCounter;
             pathCounter++;
             console.log(get(paths));
+            console.log(get(junctions));
             return temp;
         },
         isEndBlocked: (id, checkFirst = false, checkSecond = false)=>{
@@ -154,13 +196,13 @@ function createPaths() {
             }
         },
         split: (pathId, pathIndex, junType = "normal")=>{
-            const t = get(paths);
-            if(t[pathId] && t[pathId].points[pathIndex]){
+            const p = get(paths);
+            if(p[pathId] && p[pathId].points[pathIndex]){
 
-                let first = t[pathId].points.slice(0, pathIndex+1);
-                let second = t[pathId].points.slice(pathIndex);
+                let first = p[pathId].points.slice(0, pathIndex+1);
+                let second = p[pathId].points.slice(pathIndex);
 
-                let newId = paths.new(first, t[pathId].type);
+                let newId = paths.new(first, p[pathId].type);
                 update(n=>{
                     n[pathId].points = second;
                     return n;
@@ -189,6 +231,7 @@ function createPaths() {
         },
         join: (pathId, pathIndex, newPathId)=>{
             const t = get(paths);
+            let returnId = newPathId;
             let newPath = t[newPathId];
             let path = t[pathId];
             if(!newPath || !path || !path.points[pathIndex] || paths.isEndBlocked(newPathId, false, true)){
@@ -197,6 +240,8 @@ function createPaths() {
             }
 
             let start = newPath.points.length > 0 ? false : true;
+            if(!start)
+                returnId = paths.new();
             paths.addPoint(newPathId, path.points[pathIndex]);
 
             if(pathIndex > 0){
@@ -205,12 +250,12 @@ function createPaths() {
                     let junIndex = paths.split(pathId, pathIndex, "normal");
                     console.log(`adding path ${newPathId} to jun ${junIndex}`);
                     junctions.addPath(junIndex, {id: newPathId, start });
-                    return newPathId;
+                    return returnId;
                 }
                 console.log("F");
                 if(paths.isEndBlocked(pathId, false, true)){
                     console.log("lastEndIsBlocked");
-                    return newPathId;
+                    return returnId;
                 }
 
                 if(start){
@@ -231,14 +276,14 @@ function createPaths() {
                 console.log("S")
                 if(paths.isEndBlocked(pathId, true, false)){
                     console.log("firstEndIsBlocked");
-                    return newPathId;
+                    return returnId;
                 }
                 if(newPath.type !== path.type){
                     console.log("FS");
                     let junIndex = paths.split(pathId, pathIndex, "normal");
                     console.log(`adding path ${newPathId} to jun ${junIndex}`);
                     junctions.addPath(junIndex, {id: newPathId, start });
-                    return newPathId;
+                    return returnId;
                 }
                 if(!start){
                     console.log("connect End");
@@ -250,7 +295,7 @@ function createPaths() {
                                 {id: pathId, start: false}
                             ]
                         )
-                        return newPathId;
+                        return returnId;
                     }
                     paths.addPoints(newPathId, path.points);
                     junctions.modifyPath(pathId, false, false, newPathId);
@@ -276,6 +321,13 @@ function createPaths() {
                 }
                 return n;
             })
+        },
+        changeType: (id, newType)=>{
+            update(n=>{
+                if(n[id])
+                    n[id].type = newType;
+                return n;
+            });
         }
 	};
 }

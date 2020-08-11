@@ -4,9 +4,15 @@
 
 <style>
 	nav {
-		border-bottom: 1px solid rgba(255,62,0,0.1);
-		font-weight: 300;
+		margin: 10px 0;
+		margin-bottom: 20px;
+		font-weight: bold;
+		color: #fff;
 		padding: 0 1em;
+		display: flex;
+		flex-flow: row;
+		justify-content: center;
+		align-items: center;
 	}
 
 	ul {
@@ -24,26 +30,29 @@
 	li {
 		display: block;
 		float: left;
+		color: #ffffff99;
 	}
 
 	[aria-current] {
 		position: relative;
 		display: inline-block;
+		color: #fff;
 	}
 
 	[aria-current]::after {
 		position: absolute;
 		content: '';
 		width: calc(100% - 1em);
-		height: 2px;
-		background-color: rgb(255,62,0);
+		height: 7px;
+    	background-image: radial-gradient(#ffffff, #ffffff00 80%);
 		display: block;
 		bottom: -1px;
 	}
 
 	a {
 		text-decoration: none;
-		padding: 1em 0.5em;
+		font-size: 1.7rem;
+		padding: 0px 0.5em;
 		display: block;
 	}
 </style>
